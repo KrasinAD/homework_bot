@@ -1,6 +1,7 @@
 import logging
 import os
 import time
+import urllib.error
 from http import HTTPStatus
 
 import requests
@@ -37,23 +38,17 @@ def check_tokens():
         TELEGRAM_TOKEN,
         TELEGRAM_CHAT_ID,
     ]
-    for variable in environment_variable:
-        if not variable:
-            logging.critical(
-                f'Отсутствует обязательная переменная окружения: {variable}.'
-                'Программа принудительно остановлена.'
-            )
-            return False
-    return True
+    return all(environment_variable)
 
 
 def send_message(bot, message):
     """Отправляет сообщение в Telegram чат."""
     try:
         bot.send_message(TELEGRAM_CHAT_ID, message)
-        logging.debug(f'Отправлено сообщение в чат: {message}')
     except Exception as error:
         logging.error(f'Сбой при отправке сообщения {message}: {error}')
+    else:
+        logging.debug(f'Отправлено сообщение в чат: {message}')
 
 
 def get_api_answer(timestamp):
@@ -63,59 +58,40 @@ def get_api_answer(timestamp):
         response = requests.get(ENDPOINT, headers=HEADERS, params=params)
         if response.status_code != HTTPStatus.OK:
             message = f'Эндпоинт {response.url} не доступен.'
-            logging.error(message)
             raise ConnectionError(message)
         return response.json()
     except Exception as error:
-        logging.error(f'Статус ошибки {error}')
-        raise str(error)
+        raise urllib.error.HTTPError(error)
 
 
 def check_response(response):
     """Проверяет ответ API на соответствие."""
     if not response:
-        message = 'Словарь не найден.'
-        logging.error(message)
-        raise KeyError(message)
+        raise KeyError('Словарь не найден.')
 
-    if type(response) != dict:
-        message = 'Пришел список, а не словарь.'
-        logging.error(message)
-        raise TypeError(message)
+    if not isinstance(response, dict):
+        raise TypeError('Пришел список, а не словарь.')
 
     if 'homeworks' not in response:
-        message = 'Отсутствие ожидаемый ключ в словаре.'
-        logging.error(message)
-        raise KeyError(message)
+        raise KeyError('Отсутствие ожидаемый ключ в словаре.')
 
-    if type(response.get('homeworks')) != list:
-        message = 'Пришел словарь, а не список в ответе.'
-        logging.error(message)
-        raise TypeError(message)
+    if not isinstance(response.get('homeworks'), list):
+        raise TypeError('Пришел словарь, а не список в ответе.')
 
     return response['homeworks']
 
 
 def parse_status(homework):
     """Извлекает информацию о статусе домашней работы."""
-    if not homework.get('homework_name'):
-        homework_name = 'Пусто'
-        message = 'Отсутствует имя домашней работы.'
-        logging.warning(message)
-        raise KeyError(message)
     homework_name = homework.get('homework_name')
+    verdict = HOMEWORK_VERDICTS.get(homework.get('status'))
 
-    homework_status = homework.get('status')
-    if not homework_status:
-        message = 'Отсутстует ключ homework_status.'
-        logging.error(message)
-        raise KeyError(message)
+    if homework_name is None:
+        raise KeyError('Отсутствует имя домашней работы.')
 
-    verdict = HOMEWORK_VERDICTS.get(homework_status)
-    if homework_status not in HOMEWORK_VERDICTS:
-        message = 'Cтатус домашней работы отсутсвует'
-        logging.error(message)
-        raise KeyError(message)
+    if verdict is None:
+        raise KeyError('Отсутстует ключ homework_status.')
+
     return f'Изменился статус проверки работы "{homework_name}". {verdict}'
 
 
@@ -128,14 +104,16 @@ def main():
     timestamp = int(time.time())
 
     if not check_tokens():
+        logging.critical(
+            'Отсутствует обязательная переменная окружения.'
+            'Программа принудительно остановлена.'
+        )
         exit()
 
     while True:
         try:
             response = get_api_answer(timestamp)
             homeworks = check_response(response)
-            if type(response) != dict:
-                raise TypeError(response)
             for homework in homeworks:
                 message = parse_status(homework)
                 if message is not None:
@@ -145,6 +123,7 @@ def main():
             if last_send['error'] != message:
                 send_message(bot, message)
                 last_send['error'] = message
+                logging.error(message)
         else:
             last_send['error'] = None
         finally:
