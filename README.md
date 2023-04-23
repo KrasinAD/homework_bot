@@ -3,8 +3,8 @@
 Бот отображения статуса домашний работы на Яндекс Практикуме.
 API Практикум: https://practicum.yandex.ru/api/user_api/homework_statuses/ и доступ к нему возможен только по токену.
 ### Технологии
-Python 3.9
-Python-telegram-bot 13.7
+- Python 3.9
+- Python-telegram-bot 13.7
 ### Запуск Telegram BOT
 - Установите и активируйте виртуальное окружение
 - Установите зависимости из файла requirements.txt
