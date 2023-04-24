@@ -33,12 +33,11 @@ logging.basicConfig(
 
 def check_tokens():
     """Проверяет доступность переменных окружения."""
-    environment_variable = [
+    return all([
         PRACTICUM_TOKEN,
         TELEGRAM_TOKEN,
-        TELEGRAM_CHAT_ID,
-    ]
-    return all(environment_variable)
+        TELEGRAM_CHAT_ID
+    ])
 
 
 def send_message(bot, message):
@@ -70,13 +69,16 @@ def check_response(response):
         raise KeyError('Словарь не найден.')
 
     if not isinstance(response, dict):
-        raise TypeError('Пришел список, а не словарь.')
+        raise TypeError('Пришел список, а не словарь в ответе.')
 
     if 'homeworks' not in response:
         raise KeyError('Отсутствие ожидаемый ключ в словаре.')
 
     if not isinstance(response.get('homeworks'), list):
         raise TypeError('Пришел словарь, а не список в ответе.')
+
+    if response.get('homeworks') is None:
+        raise KeyError('Ожидаемый словарь пустой.')
 
     return response['homeworks']
 
