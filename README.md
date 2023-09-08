@@ -15,8 +15,6 @@ pip install -r requirements.txt
     - PRACTICUM_TOKEN - токен Яндекса
     - TELEGRAM_TOKEN - токен Телеграмм бота
     - TELEGRAM_CHAT_ID - id пользователя для получения статуса
-```
-
 
 ### Автор проекта
 
