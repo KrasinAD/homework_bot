@@ -16,7 +16,7 @@ pip install -r requirements.txt
     - TELEGRAM_TOKEN - токен Телеграмм бота
     - TELEGRAM_CHAT_ID - id пользователя для получения статуса
 ```
-```
+
 
 ### Автор проекта
 
